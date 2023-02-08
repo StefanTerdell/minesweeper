@@ -1,6 +1,6 @@
 use console::Term;
 use rand::random;
-use std::cmp;
+use std::{cmp, ops::RangeInclusive};
 
 #[derive(PartialEq)]
 pub enum GameState {
@@ -30,11 +30,15 @@ pub struct Cell {
 
 pub type Grid = Vec<Vec<Cell>>;
 
+fn safe_range(n: &usize, length: &usize) -> RangeInclusive<usize> {
+    return if *n == 0 { 0 } else { n - 1 }..=cmp::min(n + 1, *length - 1);
+}
+
 pub fn create_grid(size_x: usize, size_y: usize, incidence: f32) -> Grid {
-    let mut grid: Grid = Vec::new();
+    let mut grid: Grid = Vec::with_capacity(size_y);
 
     for _ in 0..size_y {
-        let mut column = Vec::new();
+        let mut column = Vec::with_capacity(size_x);
 
         for _ in 0..size_x {
             let has_mine = random::<f32>() < incidence;
@@ -48,7 +52,7 @@ pub fn create_grid(size_x: usize, size_y: usize, incidence: f32) -> Grid {
                 state: CellState::Invisible,
             };
 
-            column.push(cell)
+            column.push(cell);
         }
 
         grid.push(column);
@@ -60,21 +64,19 @@ pub fn create_grid(size_x: usize, size_y: usize, incidence: f32) -> Grid {
 }
 
 pub fn count_mines(grid: &mut Grid) {
-    for y in 0..grid.len() {
-        let max_y = grid.len() - 1;
-
-        for x in 0..grid[y].len() {
-            let max_x = grid[y].len() - 1;
-
+    let max_y = grid.len();
+    for y in 0..max_y {
+        let max_x = grid[y].len();
+        for x in 0..max_x {
             if grid[y][x].content == CellContent::Mine {
                 continue;
             }
 
             let mut count = 0;
 
-            for ry in if y == 0 { 0 } else { y - 1 }..=cmp::min(y + 1, max_y) {
-                for rx in if x == 0 { 0 } else { x - 1 }..=cmp::min(x + 1, max_x) {
-                    if grid[ry][rx].content == CellContent::Mine {
+            for sy in safe_range(&y, &max_y) {
+                for sx in safe_range(&x, &max_x) {
+                    if grid[sy][sx].content == CellContent::Mine {
                         count += 1;
                     }
                 }
@@ -109,47 +111,43 @@ pub fn print_grid(grid: &Grid, term: &Term) {
 }
 
 pub fn check_win(grid: &Grid) -> bool {
-    let mut no_invisible = true;
-
-    let mut mines = 0;
-    let mut flags = 0;
-
     for y in 0..grid.len() {
         for x in 0..grid[y].len() {
             let cell = &grid[y][x];
-            no_invisible = no_invisible && cell.state != CellState::Invisible;
 
-            if cell.state == CellState::Flagged {
-                flags += 1;
+            if cell.state == CellState::Invisible {
+                return false;
             }
 
-            if cell.content == CellContent::Mine {
-                mines += 1;
+            if (cell.state == CellState::Flagged) != (cell.content == CellContent::Mine) {
+                return false;
             }
         }
     }
 
-    no_invisible && mines == flags
+    true
 }
 
 // Returns true if you revealed a mine
 pub fn reveal(grid: &mut Grid, x: usize, y: usize) -> bool {
-    if grid[y][x].state != CellState::Invisible {
+    let cell = &mut grid[y][x];
+
+    if cell.state != CellState::Invisible {
         return false;
     }
 
-    grid[y][x].state = CellState::Visible;
+    cell.state = CellState::Visible;
 
-    if grid[y][x].content == CellContent::Mine {
+    if cell.content == CellContent::Mine {
         return true;
     }
 
-    if grid[y][x].content == CellContent::Empty {
-        let max_y = grid.len() - 1;
-        for ry in if y == 0 { 0 } else { y - 1 }..=cmp::min(y + 1, max_y) {
-            let max_x = grid[y].len() - 1;
-            for rx in if x == 0 { 0 } else { x - 1 }..=cmp::min(x + 1, max_x) {
-                reveal(grid, rx, ry);
+    if cell.content == CellContent::Empty {
+        let max_y = grid.len();
+        for sy in safe_range(&y, &max_y) {
+            let max_x = grid[y].len();
+            for sx in safe_range(&x, &max_x) {
+                reveal(grid, sx, sy);
             }
         }
     }
