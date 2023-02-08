@@ -5,7 +5,7 @@ use input::*;
 
 fn main() {
     let term = init_term();
-    let size_x = 20;
+    let size_x = 10;
     let size_y = 10;
 
     let mut grid = create_grid(size_x, size_y, 0.1f32);
@@ -49,14 +49,16 @@ fn main() {
                 print_grid(&grid, &term);
             }
             'f' => {
-                if grid[pos_y][pos_x].state == CellState::Visible {
+                let cell = &mut grid[pos_y][pos_x];
+
+                if cell.state == CellState::Visible {
                     return;
                 }
 
-                if grid[pos_y][pos_x].state == CellState::Flagged {
-                    grid[pos_y][pos_x].state = CellState::Invisible;
+                if cell.state == CellState::Flagged {
+                    cell.state = CellState::Invisible;
                 } else {
-                    grid[pos_y][pos_x].state = CellState::Flagged;
+                    cell.state = CellState::Flagged;
 
                     if check_win(&grid) {
                         state = GameState::Won;
