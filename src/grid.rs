@@ -2,13 +2,6 @@ use console::Term;
 use rand::random;
 use std::{cmp, ops::RangeInclusive};
 
-#[derive(PartialEq)]
-pub enum GameState {
-    Playing,
-    Won,
-    Lost,
-}
-
 #[derive(Debug, PartialEq)]
 pub enum CellContent {
     Mine,

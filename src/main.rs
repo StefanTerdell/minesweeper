@@ -3,6 +3,14 @@ mod input;
 use grid::*;
 use input::*;
 
+#[derive(PartialEq)]
+enum GameState {
+    Playing,
+    Won,
+    Lost,
+    Quit,
+}
+
 fn main() {
     let term = init_term();
     let size_x = 10;
@@ -15,7 +23,7 @@ fn main() {
 
     print_grid(&grid, &term);
 
-    loop {
+    while state == GameState::Playing {
         print_brackets(pos_x, pos_y, &term);
 
         match await_input(&term) {
@@ -67,22 +75,20 @@ fn main() {
 
                 print_grid(&grid, &term);
             }
-            _ => break,
-        }
-
-        if state != GameState::Playing {
-            if state == GameState::Lost {
-                println!("You lost!");
-            } else {
-                println!("You won!")
-            }
-
-            await_input(&term);
-
-            break;
+            _ => state = GameState::Quit,
         }
 
         clear_brackets(&term);
+    }
+
+    if state != GameState::Quit {
+        if state == GameState::Lost {
+            println!("You lost!");
+        } else {
+            println!("You won!")
+        }
+
+        await_input(&term);
     }
 
     cleanup_term(term)
